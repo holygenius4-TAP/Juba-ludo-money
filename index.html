@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juba Ludo</title>
+  <style>
+  * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  user-select: none;
+}
+
+body {
+  background-color: #1e1e24;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 10px;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+/* 15x15 CSS Grid Board */
+.board {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  background-color: #ffffff;
+  border: 4px solid #333;
+  position: relative;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+}
+
+/* Grid Cells */
+.cell {
+  border: 1px solid #ccc;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Player Bases */
+.base {
+  grid-row-span: 6;
+  grid-column-span: 6;
+  padding: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.red-base { grid-area: 1 / 1 / 7 / 7; background-color: #ff4d4d; }
+.blue-base-placeholder { grid-area: 1 / 10 / 7 / 16; background-color: #4d94ff; opacity: 0.3; }
+.yellow-base-placeholder { grid-area: 10 / 1 / 16 / 7; background-color: #ffdb4d; opacity: 0.3; }
+.green-base { grid-area: 10 / 10 / 16 / 16; background-color: #2ecc71; }
+
+.base-inner {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  padding: 10%;
+  gap: 10%;
+}
+
+.base-spot {
+  background-color: #eee;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid #ccc;
+}
+
+/* Center Home */
+.center-home {
+  grid-area: 7 / 7 / 10 / 10;
+  position: relative;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  overflow: hidden;
+}
+
+.triangle {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.red-triangle {
+  border-top: 25px solid transparent;
+  border-bottom: 25px solid transparent;
+  border-left: 25px solid #ff4d4d;
+  top: 50%; left: 0; transform: translateY(-50%);
+}
+
+.green-triangle {
+  border-top: 25px solid transparent;
+  border-bottom: 25px solid transparent;
+  border-right: 25px solid #2ecc71;
+  top: 50%; right: 0; transform: translateY(-50%);
+}
+
+/* Path Cell Styles */
+.cell.red-path { background-color: #ff9999; }
+.cell.green-path { background-color: #85e0a3; }
+.cell.start-red { background-color: #ff4d4d; }
+.cell.start-green { backgr8ound-color: #2ecc71; }
+
+/* Tokens */
+.token {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.1s ease;
+}
+
+.token.red { background-color: #cc0000; }
+.token.green { background-color: #1b8a4c; }
+
+.token.movable {
+  animation: pulse 0.8s infinite alternate;
+  border-color: #ffff00;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1.15); }
+}
+
+/* UI Controls Area */
+.controls {
+  width: 100%;
+  margin-top: 15px;
+  background-color: #2b2b36;
+  padding: 15px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-bar {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.player-indicator.red-text { color: #ff4d4d; }
+.player-indicator.green-text { color: #2ecc71; }
+
+.dice-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.dice-box {
+  width: 50px;
+  height: 50px;
+  background-color: #ffffff;
+  color: #000000;
+  font-size: 1.8rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  border: 2px solid #555;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  background-color: #4e54c8;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #6c63ff;
+}
+
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.message-box {
+  font-size: 0.9rem;
+  color: #ccc;
+  height: 20px;
+}
+
+  </style>
+</head>
+<body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline 1v1 Ludo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="game-container">
+    <div id="board" class="board">
+      <!-- Player Bases -->
+      <div class="base red-base">
+        <div class="base-inner">
+          <div class="base-spot"><div id="token-red-0" class="token red" onclick="handleTokenClick('red', 0)"></div></div>
+          <div class="base-spot"><div id="token-red-1" class="token red" onclick="handleTokenClick('red', 1)"></div></div>
+          <div class="base-spot"><div id="token-red-2" class="token red" onclick="handleTokenClick('red', 2)"></div></div>
+          <div class="base-spot"><div id="token-red-3" class="token red" onclick="handleTokenClick('red', 3)"></div></div>
+        </div>
+      </div>
+
+      <div class="base blue-base-placeholder"></div>
+
+      <div class="center-home">
+        <div class="triangle red-triangle"></div>
+        <div class="triangle green-triangle"></div>
+        <div class="triangle yellow-triangle"></div>
+        <div class="triangle blue-triangle"></div>
+      </div>
+
+      <div class="base yellow-base-placeholder"></div>
+
+      <div class="base green-base">
+        <div class="base-inner">
+          <div class="base-spot"><div id="token-green-0" class="token green" onclick="handleTokenClick('green', 0)"></div></div>
+          <div class="base-spot"><div id="token-green-1" class="token green" onclick="handleTokenClick('green', 1)"></div></div>
+          <div class="base-spot"><div id="token-green-2" class="token green" onclick="handleTokenClick('green', 2)"></div></div>
+          <div class="base-spot"><div id="token-green-3" class="token green" onclick="handleTokenClick('green', 3)"></div></div>
+        </div>
+      </div>
+
+      <!-- Path cells generated dynamically by JavaScript -->
+    </div>
+
+    <!-- UI Controls -->
+    <div class="controls">
+      <div class="status-bar">
+        Turn: <span id="current-player" class="player-indicator red-text">Red</span>
+      </div>
+      <div class="dice-section">
+        <div id="dice-display" class="dice-box">-</div>
+        <button id="roll-btn" onclick="rollDice()">Roll Dice</button>
+      </div>
+      <div id="message" class="message-box">Roll the dice to start!</div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+  <script>
+  // 15x15 Coordinate Mapping for the 52 common path cells
+const BOARD_PATH = [
+  { r: 7, c: 2 }, { r: 7, c: 3 }, { r: 7, c: 4 }, { r: 7, c: 5 }, { r: 7, c: 6 }, // 0-4 (Red start at 0)
+  { r: 6, c: 7 }, { r: 5, c: 7 }, { r: 4, c: 7 }, { r: 3, c: 7 }, { r: 2, c: 7 }, { r: 1, c: 7 }, // 5-10
+  { r: 1, c: 8 }, { r: 1, c: 9 }, // 11-12
+  { r: 2, c: 9 }, { r: 3, c: 9 }, { r: 4, c: 9 }, { r: 5, c: 9 }, { r: 6, c: 9 }, // 13-17
+  { r: 7, c: 10 }, { r: 7, c: 11 }, { r: 7, c: 12 }, { r: 7, c: 13 }, { r: 7, c: 14 }, { r: 7, c: 15 }, // 18-23
+  { r: 8, c: 15 }, { r: 9, c: 15 }, // 24-25
+  { r: 9, c: 14 }, { r: 9, c: 13 }, { r: 9, c: 12 }, { r: 9, c: 11 }, { r: 9, c: 10 }, // 26-30 (Green start at 26)
+  { r: 10, c: 9 }, { r: 11, c: 9 }, { r: 12, c: 9 }, { r: 13, c: 9 }, { r: 14, c: 9 }, { r: 15, c: 9 }, // 31-36
+  { r: 15, c: 8 }, { r: 15, c: 7 }, // 37-38
+  { r: 14, c: 7 }, { r: 13, c: 7 }, { r: 12, c: 7 }, { r: 11, c: 7 }, { r: 10, c: 7 }, // 39-43
+  { r: 9, c: 6 }, { r: 9, c: 5 }, { r: 9, c: 4 }, { r: 9, c: 3 }, { r: 9, c: 2 }, { r: 9, c: 1 }, // 44-49
+  { r: 8, c: 1 }, { r: 7, c: 1 } // 50-51
+];
+
+// Home stretch coordinates (6 cells each)
+const HOME_PATHS = {
+  red: [
+    { r: 8, c: 2 }, { r: 8, c: 3 }, { r: 8, c: 4 }, { r: 8, c: 5 }, { r: 8, c: 6 }, { r: 8, c: 7 }
+  ],
+  green: [
+    { r: 8, c: 14 }, { r: 8, c: 13 }, { r: 8, c: 12 }, { r: 8, c: 11 }, { r: 8, c: 10 }, { r: 8, c: 9 }
+  ]
+};
+
+// Start indices in BOARD_PATH
+const START_INDEX = { red: 0, green: 26 };
+
+// Game State
+let currentPlayer = 'red'; // 'red' or 'green'
+let diceValue = null;
+let hasRolled = false;
+
+let tokens = {
+  red: [
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 }
+  ],
+  green: [
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 },
+    { position: -1, stepCount: -1 }
+  ]
+};
+
+// Initialize board DOM cells
+function initBoard() {
+  const boardEl = document.getElementById('board');
+  
+  // Create 52 main path cells
+  BOARD_PATH.forEach((coord, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.style.gridArea = `${coord.r} / ${coord.c}`;
+    cell.id = `path-${idx}`;
+    if (idx === START_INDEX.red) cell.classList.add('start-red');
+    if (idx === START_INDEX.green) cell.classList.add('start-green');
+    boardEl.appendChild(cell);
+  });
+
+  // Create Home Path cells
+  ['red', 'green'].forEach(player => {
+    HOME_PATHS[player].forEach((coord, idx) => {
+      const cell = document.createElement('div');
+      cell.className = `cell ${player}-path`;
+      cell.style.gridArea = `${coord.r} / ${coord.c}`;
+      cell.id = `home-${player}-${idx}`;
+      boardEl.appendChild(cell);
+    });
+  });
+
+  renderTokens();
+}
+
+// Roll Dice Functionality
+function rollDice() {
+  if (hasRolled) return;
+
+  diceValue = Math.floor(Math.random() * 6) + 1;
+  document.getElementById('dice-display').innerText = diceValue;
+  hasRolled = true;
+
+  const validMoves = checkValidMoves(currentPlayer, diceValue);
+
+  if (!validMoves) {
+    setMessage(`No valid moves for ${capitalize(currentPlayer)}. Turn passes!`);
+    setTimeout(switchTurn, 1200);
+  } else {
+    setMessage(`${capitalize(currentPlayer)} rolled ${diceValue}. Click a token to move.`);
+    highlightMovableTokens();
+  }
+}
+
+// Check if player has at least one legal move
+function checkValidMoves(player, roll) {
+  return tokens[player].some(t => {
+    if (t.stepCount === -1) return roll === 6; // Move out of base
+    return (t.stepCount + roll) <= 56; // Move forward without overshooting home
+  });
+}
+
+// Highlight interactive tokens
+function highlightMovableTokens() {
+  tokens[currentPlayer].forEach((t, idx) => {
+    const tokenEl = document.getElementById(`token-${currentPlayer}-${idx}`);
+    const canMove = (t.stepCount === -1 && diceValue === 6) || (t.stepCount >= 0 && (t.stepCount + diceValue) <= 56);
+    if (canMove) {
+      tokenEl.classList.add('movable');
+    }
+  });
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.token').forEach(el => el.classList.remove('movable'));
+}
+
+// Handle User Clicking Token
+function handleTokenClick(player, tokenIdx) {
+  if (!hasRolled || player !== currentPlayer) return;
+
+  const token = tokens[player][tokenIdx];
+  
+  // Can only move from base on a 6
+  if (token.stepCount === -1 && diceValue !== 6) return;
+  // Cannot move beyond home cell (step count 56)
+  if (token.stepCount >= 0 && (token.stepCount + diceValue) > 56) return;
+
+  // Execute Move
+  if (token.stepCount === -1 && diceValue === 6) {
+    token.stepCount = 0;
+    token.position = START_INDEX[player];
+  } else {
+    token.stepCount += diceValue;
+    if (token.stepCount < 51) {
+      token.position = (START_INDEX[player] + token.stepCount) % 52;
+    } else {
+      token.position = 100 + (token.stepCount - 51); // Marker for home stretch
+    }
+  }
+
+  clearHighlights();
+  renderTokens();
+  checkWinCondition();
+
+  // Reset roll status and switch turn
+  hasRolled = false;
+  document.getElementById('roll-btn').disabled = false;
+  
+  // Rules: Getting a 6 gives another turn
+  if (diceValue === 6) {
+    setMessage(`${capitalize(currentPlayer)} rolled a 6 and gets another turn!`);
+  } else {
+    switchTurn();
+  }
+}
+
+// Render token positions on DOM
+function renderTokens() {
+  ['red', 'green'].forEach(player => {
+    tokens[player].forEach((t, idx) => {
+      const tokenEl = document.getElementById(`token-${player}-${idx}`);
+      
+      if (t.stepCount === -1) {
+        // Return to home base spot
+        const baseSpots = document.querySelectorAll(`.${player}-base .base-spot`);
+        baseSpots[idx].appendChild(tokenEl);
+      } else if (t.stepCount < 51) {
+        // On main board path
+        const cellEl = document.getElementById(`path-${t.position}`);
+        cellEl.appendChild(tokenEl);
+      } else {
+        // On home stretch
+        const homeIdx = t.stepCount - 51;
+        const cellEl = document.getElementById(`home-${player}-${homeIdx}`);
+        cellEl.appendChild(tokenEl);
+      }
+    });
+  });
+}
+
+// Switch Turns
+function switchTurn() {
+  hasRolled = false;
+  diceValue = null;
+  document.getElementById('dice-display').innerText = '-';
+  
+  currentPlayer = (currentPlayer === 'red') ? 'green' : 'red';
+  
+  const playerDisplay = document.getElementById('current-player');
+  playerDisplay.innerText = capitalize(currentPlayer);
+  playerDisplay.className = `player-indicator ${currentPlayer}-text`;
+  
+  setMessage(`${capitalize(currentPlayer)}'s turn. Roll the dice!`);
+  document.getElementById('roll-btn').disabled = false;
+}
+
+// Check Win Condition
+function checkWinCondition() {
+  const isWin = tokens[currentPlayer].every(t => t.stepCount === 56);
+  if (isWin) {
+    setMessage(`🎉 Player ${capitalize(currentPlayer)} Wins! 🎉`);
+    document.getElementById('roll-btn').disabled = true;
+    hasRolled = true;
+  }
+}
+
+function setMessage(msg) {
+  document.getElementById('message').innerText = msg;
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Initialize game on load
+window.onload = initBoard;
+
+  </script>
+</body>
+</html>
