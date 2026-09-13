@@ -5,6 +5,23 @@
   <title>Juba Ludo</title>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
+    body {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  background: #0f172a;
+}
+#game-container, .board, canvas {
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  margin: auto !important;
+  display: block !important;
+}
+@media (max-width: 768px) {
+  body { transform: scale(0.85); transform-origin: center center; }
+}
   * {
   box-sizing: border-box;
   margin: 0;
