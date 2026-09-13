@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Juba Ludo</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
   * {
   box-sizing: border-box;
@@ -506,5 +507,8 @@ function capitalize(str) {
 window.onload = initBoard;
 
   </script>
+  const socket = io("https://juba-ludo-money-1.onrender.com");
+socket.on("connect",()=>{console.log("Connected!",socket.id)});
+  
 </body>
 </html>
