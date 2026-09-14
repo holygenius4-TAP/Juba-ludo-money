@@ -1,120 +1,622 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Juba Ludo</title>
+<title>Juba Ludo Supreme Money</title>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<audio id="diceSound" src="https://cdn.pixabay.com/audio/2022/03/24/audio_1c8c1f6e0f.mp3" preload="auto"></audio>
+<audio id="moveSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_c8c8a73467.mp3" preload="auto"></audio>
+<audio id="killSound" src="https://cdn.pixabay.com/audio/2022/03/24/audio_2a3d7539f6.mp3" preload="auto"></audio>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; user-select: none; }
-html, body {
-  width: 100%;
-  height: 100%;
-  background: #1e1e24;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-.game-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 95vw;
-  max-width: 480px;
-  max-height: 98vh;
-  justify-content: center;
-}
-.board {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-template-rows: repeat(15, 1fr);
-  background: #fff;
-  border: 4px solid #333;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
-}
-.cell { border: 1px solid #ccc; position: relative; display: flex; justify-content: center; align-items: center; }
-.base { grid-row-span: 6; grid-column-span: 6; padding: 10%; display: flex; justify-content: center; align-items: center; }
-.red-base { grid-area: 1 / 1 / 7 / 7; background: #ff4d4d; }
-.blue-base-placeholder { grid-area: 1 / 10 / 7 / 16; background: #4d94ff; opacity: 0.3; }
-.yellow-base-placeholder { grid-area: 10 / 1 / 16 / 7; background: #ffdb4d; opacity: 0.3; }
-.green-base { grid-area: 10 / 10 / 16 / 16; background: #2ecc71; }
-.base-inner { width: 100%; height: 100%; background: #fff; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; padding: 10%; gap: 10%; }
-.base-spot { background: #eee; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid #ccc; }
-.center-home { grid-area: 7 / 7 / 10 / 10; position: relative; background: #fff; border: 1px solid #ccc; overflow: hidden; }
-.triangle { position: absolute; width: 0; height: 0; }
-.red-triangle { border-top: 25px solid transparent; border-bottom: 25px solid transparent; border-left: 25px solid #ff4d4d; top: 50%; left: 0; transform: translateY(-50%); }
-.green-triangle { border-top: 25px solid transparent; border-bottom: 25px solid transparent; border-right: 25px solid #2ecc71; top: 50%; right: 0; transform: translateY(-50%); }
-.cell.red-path { background: #ff9999; }.cell.green-path { background: #85e0a3; }
-.cell.start-red { background: #ff4d4d; }.cell.start-green { background: #2ecc71; }
-.token { width: 70%; height: 70%; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; }
-.token.red { background: #cc0000; }.token.green { background: #1b8a4c; }
-.token.movable { animation: pulse 0.8s infinite alternate; border-color: #ffff00; }
-@keyframes pulse { 0% { transform: scale(0.9); } 100% { transform: scale(1.15); } }
-.controls { width: 100%; margin-top: 12px; background: #2b2b36; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.status-bar { font-size: 1.1rem; font-weight: bold; color: #fff; }
-.player-indicator.red-text { color: #ff4d4d; }.player-indicator.green-text { color: #2ecc71; }
-.dice-section { display: flex; align-items: center; gap: 15px; }
-.dice-box { width: 50px; height: 50px; background: #fff; color: #000; font-size: 1.8rem; font-weight: bold; display: flex; justify-content: center; align-items: center; border-radius: 8px; }
-button { padding: 10px 20px; font-size: 1rem; font-weight: bold; background: #4e54c8; color: white; border: none; border-radius: 5px; cursor: pointer; }
-.message-box { font-size: 0.9rem; color: #ccc; height: 20px; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+html, body { width: 100%; height: 100%; background: #0f1015; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.game-container { display: flex; flex-direction: column; align-items: center; width: 98vw; max-width: 480px; max-height: 98vh; justify-content: center; gap: 6px; position: relative; }
 
-/* PHONE FIX - scale down a bit so full board fits */
-@media (max-height: 800px) {
- .game-container { transform: scale(0.85); transform-origin: center center; }
+/* SCREEN SHAKE ANIMATION ON CAPTURE / KILL */
+.shake { animation: shakeBoard 0.4s ease-in-out; }
+@keyframes shakeBoard {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-8px, 6px); }
+  40% { transform: translate(8px, -6px); }
+  60% { transform: translate(-6px, -4px); }
+  80% { transform: translate(6px, 4px); }
+  100% { transform: translate(0, 0); }
 }
-@media (max-height: 600px) {
- .game-container { transform: scale(0.70); }
+
+/* FLOATING CAPTURE EMOJI OVERLAY */
+.capture-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  font-size: 3rem;
+  font-weight: 900;
+  color: #ff3333;
+  text-shadow: 0 0 10px #000, 0 0 20px #ff0000;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
 }
+.capture-popup.show {
+  animation: popKill 0.9s ease-out forwards;
+}
+@keyframes popKill {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  30% { transform: translate(-50%, -60%) scale(1.4); opacity: 1; }
+  70% { transform: translate(-50%, -70%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -90%) scale(0.8); opacity: 0; }
+}
+
+/* TOP/BOTTOM PLAYER INFO HEADER BAR & LUDO SUPREME MONEY UI */
+.top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #1a1b23; padding: 6px 12px; border-radius: 10px; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+.status-text { font-size: 0.9rem; font-weight: 600; }
+.player-role { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: #333; }
+
+.money-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #262938; padding: 6px 12px; border-radius: 8px; color: #ffd700; font-size: 0.85rem; font-weight: bold; }
+.score-badge { background: #111; padding: 2px 8px; border-radius: 6px; border: 1px solid #ffdb4d; color: #fff; }
+
+/* TIMER RING UI */
+.timer-container { font-size: 0.8rem; font-weight: bold; color: #ff4d4d; display: flex; align-items: center; gap: 4px; }
+
+/* OUTSIDE DICE PANEL LAYOUT */
+.outside-dice-row { width: 100%; display: flex; justify-content: space-between; align-items: center; height: 50px; padding: 0 8px; }
+
+/* BOARD STRUCTURE */
+.board-wrapper { position: relative; width: 100%; aspect-ratio: 1 / 1; }
+.board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); background: #fff; border: 4px solid #222; box-shadow: 0 10px 25px rgba(0,0,0,0.7); border-radius: 8px; overflow: hidden; }
+.cell { border: 1px solid #ddd; position: relative; display: flex; justify-content: center; align-items: center; }
+.base { grid-row-span: 6; grid-column-span: 6; padding: 10%; display: flex; justify-content: center; align-items: center; position: relative; }
+.red-base { grid-area: 1 / 1 / 7 / 7; background: #ff4d4d; }
+.green-base { grid-area: 10 / 10 / 16 / 16; background: #2ecc71; }
+
+/* SOUTH SUDAN FLAG BASE STYLES */
+.ss-base-top { grid-area: 1 / 10 / 7 / 16; padding: 0; border: 2px solid #1a1b23; overflow: hidden; position: relative; }
+.ss-base-bottom { grid-area: 10 / 1 / 16 / 7; padding: 0; border: 2px solid #1a1b23; overflow: hidden; position: relative; }
+.ss-flag-svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+.base-inner { width: 100%; height: 100%; background: #fff; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; padding: 10%; gap: 10%; box-shadow: inset 0 0 10px rgba(0,0,0,0.2); }
+.base-spot { background: #f0f0f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid #ccc; }
+
+/* CENTER DESTINATION GRAPHICS */
+.center-home { grid-area: 7 / 7 / 10 / 10; position: relative; background: #111; border: 2px solid #ffdb4d; overflow: hidden; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
+.triangle { position: absolute; width: 0; height: 0; }
+.red-triangle { border-top: 32px solid transparent; border-bottom: 32px solid transparent; border-left: 32px solid #ff4d4d; top: 50%; left: 0; transform: translateY(-50%); filter: drop-shadow(2px 0 4px rgba(0,0,0,0.5)); }
+.green-triangle { border-top: 32px solid transparent; border-bottom: 32px solid transparent; border-right: 32px solid #2ecc71; top: 50%; right: 0; transform: translateY(-50%); filter: drop-shadow(-2px 0 4px rgba(0,0,0,0.5)); }
+.center-star { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #ffd700; text-shadow: 0 0 8px #ff9800; z-index: 5; pointer-events: none; }
+
+.cell.red-path { background: #ff9999; }
+.cell.green-path { background: #85e0a3; }
+.cell.start-red { background: #ff4d4d; }
+.cell.start-green { background: #2ecc71; }
+
+/* SAFE SPOTS WITHOUT STARS AT GATES */
+.cell.safe { background: #ffffcc!important; }
+.cell.safe::after { content: "★"; position: absolute; font-size: 12px; color: #ff9800; top: 0px; right: 2px; z-index: 1; }
+.cell.start-red::after { content: ""!important; }
+.cell.start-green::after { content: ""!important; }
+
+/* TOKENS */
+.token { width: 75%; height: 75%; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.4); cursor: pointer; z-index: 10; transition: transform 0.15s linear; }
+.token.red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000); }
+.token.green { background: radial-gradient(circle at 30% 30%, #51f097, #1b8a4c); }
+.token.movable { animation: pulseToken 0.8s infinite alternate; border-color: #ffff00; }
+.token.walking { transform: scale(1.3); z-index: 20; }
+@keyframes pulseToken { 0% { transform: scale(0.9); box-shadow: 0 0 5px #ffff00; } 100% { transform: scale(1.2); box-shadow: 0 0 15px #ffff00; } }
+
+/* EXACT LUDO MASTER / SUPREME DICE SPECIFICATIONS (48x48) */
+.dice-box { 
+  width: 48px; 
+  height: 48px; 
+  background: #ffffff; 
+  border-radius: 8px; 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  grid-template-rows: repeat(3, 1fr); 
+  padding: 5px; 
+  gap: 1px; 
+  border: 2px solid #111; 
+  box-shadow: 0 4px 8px rgba(0,0,0,0.6); 
+  cursor: pointer; 
+  transition: all 0.2s ease;
+}
+
+.dice-box.active { 
+  border-color: #ffff00; 
+  box-shadow: 0 0 12px #ffff00, 0 4px 8px rgba(0,0,0,0.6); 
+  animation: diceGlow 1s infinite alternate; 
+}
+.dice-box.inactive { 
+  opacity: 0.3; 
+  pointer-events: none; 
+  filter: grayscale(1); 
+  box-shadow: none;
+}
+
+.dice-dot { width: 7px; height: 7px; background: #000; border-radius: 50%; align-self: center; justify-self: center; display: none; }
+.dice-box.rolling { animation: diceRollMaster 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67)!important; }
+
+@keyframes diceGlow { 
+  0% { transform: scale(1); box-shadow: 0 0 6px #ffff00; } 
+  100% { transform: scale(1.08); box-shadow: 0 0 16px #ffff00; } 
+}
+@keyframes diceRollMaster { 
+  0% { transform: rotate(0deg) scale(1); } 
+  50% { transform: rotate(360deg) scale(1.25); } 
+  100% { transform: rotate(720deg) scale(1); } 
+}
+
+.message-box { font-size: 0.95rem; color: #ffdb4d; height: 22px; text-align: center; font-weight: 600; margin-top: 2px; }
+
+@media (max-height: 800px) { .game-container { transform: scale(0.88); transform-origin: center center; } }
+@media (max-height: 600px) { .game-container { transform: scale(0.72); } }
 </style>
 </head>
 <body>
-<div class="game-container">
-<div id="board" class="board">
-<div class="base red-base"><div class="base-inner">
-<div class="base-spot"><div id="token-red-0" class="token red" onclick="handleTokenClick('red',0)"></div></div>
-<div class="base-spot"><div id="token-red-1" class="token red" onclick="handleTokenClick('red',1)"></div></div>
-<div class="base-spot"><div id="token-red-2" class="token red" onclick="handleTokenClick('red',2)"></div></div>
-<div class="base-spot"><div id="token-red-3" class="token red" onclick="handleTokenClick('red',3)"></div></div>
-</div></div>
-<div class="base blue-base-placeholder"></div>
-<div class="center-home"><div class="triangle red-triangle"></div><div class="triangle green-triangle"></div></div>
-<div class="base yellow-base-placeholder"></div>
-<div class="base green-base"><div class="base-inner">
-<div class="base-spot"><div id="token-green-0" class="token green" onclick="handleTokenClick('green',0)"></div></div>
-<div class="base-spot"><div id="token-green-1" class="token green" onclick="handleTokenClick('green',1)"></div></div>
-<div class="base-spot"><div id="token-green-2" class="token green" onclick="handleTokenClick('green',2)"></div></div>
-<div class="base-spot"><div id="token-green-3" class="token green" onclick="handleTokenClick('green',3)"></div></div>
-</div></div>
+
+<!-- REUSABLE SOUTH SUDAN FLAG TEMPLATE -->
+<svg style="display:none;">
+  <symbol id="south-sudan-flag" viewBox="0 0 1200 600">
+    <rect width="1200" height="180" fill="#000000"/>
+    <rect y="180" width="1200" height="30" fill="#FFFFFF"/>
+    <rect y="210" width="1200" height="180" fill="#DA121A"/>
+    <rect y="390" width="1200" height="30" fill="#FFFFFF"/>
+    <rect y="420" width="1200" height="180" fill="#078930"/>
+    <polygon points="0,0 519.6,300 0,600" fill="#0F47AF"/>
+    <g transform="translate(173.2, 300) rotate(-18)">
+      <polygon points="0,-70 20.5,-21.6 70,-21.6 30,7.4 45.2,56.6 0,25 -45.2,56.6 -30,7.4 -70,-21.6 -20.5,-21.6" fill="#FCDD09"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="game-container" id="gameContainer">
+  <div id="capturePopup" class="capture-popup">💥 KILL! 💥</div>
+  <div class="top-bar">
+    <div class="status-text">Turn: <span id="current-player" style="color:#ff4d4d;">RED</span></div>
+    <div class="timer-container">⏱️ <span id="timer-count">15</span>s</div>
+    <div class="player-role" id="player-role">Connecting...</div>
+  </div>
+
+  <!-- LUDO SUPREME PRIZE & SCORE BOARD -->
+  <div class="money-bar">
+    <div>Prize Pool: <span style="color:#2ecc71;">500 SSP</span></div>
+    <div>RED: <span id="score-red" class="score-badge">0</span></div>
+    <div>GREEN: <span id="score-green" class="score-badge">0</span></div>
+  </div>
+
+  <!-- TOP OUTSIDE DICE ROW (FOR RED PLAYER) -->
+  <div class="outside-dice-row">
+    <div id="dice-red" class="dice-box active" onclick="handleDiceClick('red')">
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+    </div>
+    <div style="color:#ff4d4d; font-weight:bold; font-size:0.85rem;">RED HOME</div>
+  </div>
+
+  <div class="board-wrapper">
+    <!-- MAIN BOARD -->
+    <div id="board" class="board">
+      <div class="base red-base">
+        <div class="base-inner">
+          <div class="base-spot"><div id="token-red-0" class="token red" onclick="handleTokenClick('red',0)"></div></div>
+          <div class="base-spot"><div id="token-red-1" class="token red" onclick="handleTokenClick('red',1)"></div></div>
+          <div class="base-spot"><div id="token-red-2" class="token red" onclick="handleTokenClick('red',2)"></div></div>
+          <div class="base-spot"><div id="token-red-3" class="token red" onclick="handleTokenClick('red',3)"></div></div>
+        </div>
+      </div>
+      
+      <!-- TOP-RIGHT UNUSED BASE WITH SOUTH SUDAN FLAG -->
+      <div class="base ss-base-top">
+        <svg class="ss-flag-svg"><use href="#south-sudan-flag"/></svg>
+      </div>
+
+      <div class="center-home">
+        <div class="triangle red-triangle"></div>
+        <div class="triangle green-triangle"></div>
+        <div class="center-star">🏆</div>
+      </div>
+
+      <!-- BOTTOM-LEFT UNUSED BASE WITH SOUTH SUDAN FLAG -->
+      <div class="base ss-base-bottom">
+        <svg class="ss-flag-svg"><use href="#south-sudan-flag"/></svg>
+      </div>
+
+      <div class="base green-base">
+        <div class="base-inner">
+          <div class="base-spot"><div id="token-green-0" class="token green" onclick="handleTokenClick('green',0)"></div></div>
+          <div class="base-spot"><div id="token-green-1" class="token green" onclick="handleTokenClick('green',1)"></div></div>
+          <div class="base-spot"><div id="token-green-2" class="token green" onclick="handleTokenClick('green',2)"></div></div>
+          <div class="base-spot"><div id="token-green-3" class="token green" onclick="handleTokenClick('green',3)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM OUTSIDE DICE ROW (FOR GREEN PLAYER) -->
+  <div class="outside-dice-row">
+    <div style="color:#2ecc71; font-weight:bold; font-size:0.85rem;">GREEN HOME</div>
+    <div id="dice-green" class="dice-box inactive" onclick="handleDiceClick('green')">
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+      <div class="dice-dot"></div><div class="dice-dot"></div><div class="dice-dot"></div>
+    </div>
+  </div>
+
+  <div id="message" class="message-box">Connecting to Juba Ludo Server...</div>
 </div>
-<div class="controls">
-<div class="status-bar">Turn: <span id="current-player" class="player-indicator red-text">Red</span></div>
-<div class="dice-section"><div id="dice-display" class="dice-box">-</div><button id="roll-btn" onclick="rollDice()">Roll Dice</button></div>
-<div id="message" class="message-box">Roll the dice to start!</div>
-</div>
-</div>
+
 <script>
-const BOARD_PATH=[{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7},{r:5,c:7},{r:4,c:7},{r:3,c:7},{r:2,c:7},{r:1,c:7},{r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},{r:8,c:15},{r:9,c:15},{r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},{r:15,c:8},{r:15,c:7},{r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},{r:8,c:1},{r:7,c:1}];
-const HOME_PATHS={red:[{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7}],green:[{r:8,c:14},{r:8,c:13},{r:8,c:12},{r:8,c:11},{r:8,c:10},{r:8,c:9}]};
+const BOARD_PATH=[
+  {r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7},{r:5,c:7},{r:4,c:7},{r:3,c:7},{r:2,c:7},{r:1,c:7},
+  {r:1,c:8},{r:1,c:9},{r:2,c:9},{r:3,c:9},{r:4,c:9},{r:5,c:9},{r:6,c:9},{r:7,c:10},{r:7,c:11},{r:7,c:12},{r:7,c:13},{r:7,c:14},{r:7,c:15},
+  {r:8,c:15},{r:9,c:15},{r:9,c:14},{r:9,c:13},{r:9,c:12},{r:9,c:11},{r:9,c:10},{r:10,c:9},{r:11,c:9},{r:12,c:9},{r:13,c:9},{r:14,c:9},{r:15,c:9},
+  {r:15,c:8},{r:15,c:7},{r:14,c:7},{r:13,c:7},{r:12,c:7},{r:11,c:7},{r:10,c:7},{r:9,c:6},{r:9,c:5},{r:9,c:4},{r:9,c:3},{r:9,c:2},{r:9,c:1},
+  {r:8,c:1},{r:7,c:1}
+];
+const HOME_PATHS={
+  red:[{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7}],
+  green:[{r:8,c:14},{r:8,c:13},{r:8,c:12},{r:8,c:11},{r:8,c:10},{r:8,c:9}]
+};
 const START_INDEX={red:0,green:26};
-let currentPlayer='red',diceValue=null,hasRolled=false;
-let tokens={red:[{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1}],green:[{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1}]};
-function initBoard(){const b=document.getElementById('board');BOARD_PATH.forEach((coord,idx)=>{const c=document.createElement('div');c.className='cell';c.style.gridArea=`${coord.r} / ${coord.c}`;c.id=`path-${idx}`;if(idx===START_INDEX.red)c.classList.add('start-red');if(idx===START_INDEX.green)c.classList.add('start-green');b.appendChild(c);});['red','green'].forEach(p=>{HOME_PATHS[p].forEach((coord,idx)=>{const c=document.createElement('div');c.className=`cell ${p}-path`;c.style.gridArea=`${coord.r} / ${coord.c}`;c.id=`home-${p}-${idx}`;b.appendChild(c);});});renderTokens();}
-function rollDice(){if(hasRolled)return;diceValue=Math.floor(Math.random()*6)+1;document.getElementById('dice-display').innerText=diceValue;hasRolled=true;const valid=checkValidMoves(currentPlayer,diceValue);if(!valid){setMessage(`No valid moves for ${capitalize(currentPlayer)}. Turn passes!`);setTimeout(switchTurn,1200);}else{setMessage(`${capitalize(currentPlayer)} rolled ${diceValue}. Click a token.`);highlightMovableTokens();}}
-function checkValidMoves(player,roll){return tokens[player].some(t=>{if(t.stepCount===-1)return roll===6;return(t.stepCount+roll)<=56;});}
-function highlightMovableTokens(){tokens[currentPlayer].forEach((t,idx)=>{const el=document.getElementById(`token-${currentPlayer}-${idx}`);const can=(t.stepCount===-1&&diceValue===6)||(t.stepCount>=0&&(t.stepCount+diceValue)<=56);if(can)el.classList.add('movable');});}
-function clearHighlights(){document.querySelectorAll('.token').forEach(el=>el.classList.remove('movable'));}
-function handleTokenClick(player,tokenIdx){if(!hasRolled||player!==currentPlayer)return;const token=tokens[player][tokenIdx];if(token.stepCount===-1&&diceValue!==6)return;if(token.stepCount>=0&&(token.stepCount+diceValue)>56)return;if(token.stepCount===-1&&diceValue===6){token.stepCount=0;token.position=START_INDEX[player];}else{token.stepCount+=diceValue;if(token.stepCount<51){token.position=(START_INDEX[player]+token.stepCount)%52;}else{token.position=100+(token.stepCount-51);}}clearHighlights();renderTokens();checkWinCondition();hasRolled=false;if(diceValue===6){setMessage(`${capitalize(currentPlayer)} rolled 6 - again!`);}else{switchTurn();}}
-function renderTokens(){['red','green'].forEach(player=>{tokens[player].forEach((t,idx)=>{const el=document.getElementById(`token-${player}-${idx}`);if(t.stepCount===-1){const spots=document.querySelectorAll(`.${player}-base.base-spot`);spots[idx].appendChild(el);}else if(t.stepCount<51){document.getElementById(`path-${t.position}`).appendChild(el);}else{const homeIdx=t.stepCount-51;document.getElementById(`home-${player}-${homeIdx}`).appendChild(el);}});});}
-function switchTurn(){hasRolled=false;diceValue=null;document.getElementById('dice-display').innerText='-';currentPlayer=(currentPlayer==='red')?'green':'red';const pd=document.getElementById('current-player');pd.innerText=capitalize(currentPlayer);pd.className=`player-indicator ${currentPlayer}-text`;setMessage(`${capitalize(currentPlayer)}'s turn. Roll!`);}
-function checkWinCondition(){const isWin=tokens[currentPlayer].every(t=>t.stepCount===56);if(isWin){setMessage(`🎉 Player ${capitalize(currentPlayer)} Wins! 🎉`);document.getElementById('roll-btn').disabled=true;hasRolled=true;}}
-function setMessage(m){document.getElementById('message').innerText=m;}
-function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
-window.onload=initBoard;
-const socket=io("https://juba-ludo-money-1.onrender.com");socket.on("connect",()=>{console.log("Connected!",socket.id)});
+const SAFE_INDICES=[0,8,13,21,26,34,39,47];
+
+let myPlayerColor = null; 
+let currentPlayer = 'red'; 
+let diceValue = null; 
+let hasRolled = false; 
+let isMoving = false;
+let consecutiveSixes = 0;
+let bonusTurnGranted = false;
+
+/* LUDO SUPREME SCORE TRACKING */
+let scores = { red: 0, green: 0 };
+let turnTimer = null;
+let timeLeft = 15;
+
+/* IN LUDO SUPREME, TOKENS START UNLOCKED OUTSIDE THE BASE AT STEP 0 */
+let tokens={
+  red:[{position:0,stepCount:0},{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1}],
+  green:[{position:26,stepCount:0},{position:-1,stepCount:-1},{position:-1,stepCount:-1},{position:-1,stepCount:-1}]
+};
+
+const socket = io("https://juba-ludo-money-1.onrender.com");
+
+function initBoard(){
+  const b=document.getElementById('board');
+  BOARD_PATH.forEach((coord,idx)=>{
+    const c=document.createElement('div');
+    c.className='cell';
+    if(SAFE_INDICES.includes(idx)) c.classList.add('safe');
+    c.style.gridArea=`${coord.r} / ${coord.c}`;
+    c.id=`path-${idx}`;
+    if(idx===START_INDEX.red) c.classList.add('start-red');
+    if(idx===START_INDEX.green) c.classList.add('start-green');
+    b.appendChild(c);
+  });
+  ['red','green'].forEach(p=>{
+    HOME_PATHS[p].forEach((coord,idx)=>{
+      const c=document.createElement('div');
+      c.className=`cell ${p}-path`;
+      c.style.gridArea=`${coord.r} / ${coord.c}`;
+      c.id=`home-${p}-${idx}`;
+      b.appendChild(c);
+    });
+  });
+  renderTokens();
+  updateDiceUI();
+  startTurnTimer();
+}
+
+function startTurnTimer(){
+  clearInterval(turnTimer);
+  timeLeft = 15;
+  document.getElementById('timer-count').innerText = timeLeft;
+  turnTimer = setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timer-count').innerText = timeLeft;
+    if(timeLeft <= 0){
+      clearInterval(turnTimer);
+      setMessage(`${capitalize(currentPlayer)} time out! Turn forfeited.`);
+      setTimeout(switchTurn, 1000);
+    }
+  }, 1000);
+}
+
+function showDiceFace(player, n){
+  const box=document.getElementById(`dice-${player}`);
+  const dots=box.querySelectorAll('.dice-dot');
+  dots.forEach(d=>d.style.display='none');
+  const map={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  if(map[n]){
+    map[n].forEach(i=>dots[i].style.display='block');
+  }
+}
+
+function handleDiceClick(player){
+  if(myPlayerColor && player !== myPlayerColor) return;
+  if(player !== currentPlayer || hasRolled || isMoving) return;
+  
+  socket.emit("rollDice", { player: player });
+  executeRoll(player);
+}
+
+function executeRoll(player){
+  const box=document.getElementById(`dice-${player}`);
+  box.classList.add('rolling');
+  document.getElementById('diceSound').play().catch(()=>{});
+  setMessage(`Rolling...`);
+  
+  setTimeout(()=>{
+    box.classList.remove('rolling');
+    if(!diceValue) diceValue = Math.floor(Math.random()*6)+1;
+    showDiceFace(player, diceValue);
+    hasRolled = true;
+    
+    if(diceValue === 6){
+      consecutiveSixes++;
+      if(consecutiveSixes === 3){
+        setMessage(`Three 6s in a row! Turn forfeited.`);
+        consecutiveSixes = 0;
+        setTimeout(switchTurn, 1200);
+        return;
+      }
+    } else {
+      consecutiveSixes = 0;
+    }
+
+    const validMoveIndices = getValidTokenIndices(currentPlayer, diceValue);
+    if(validMoveIndices.length === 0){
+      setMessage(`No valid moves! Turn passes.`);
+      setTimeout(switchTurn, 1200);
+    } else if(validMoveIndices.length === 1 && (!myPlayerColor || currentPlayer === myPlayerColor)){
+      setMessage(`Auto-moving token...`);
+      setTimeout(()=>{
+        handleTokenClick(currentPlayer, validMoveIndices[0]);
+      }, 300);
+    } else {
+      setMessage(`${capitalize(currentPlayer)} rolled ${diceValue}! Select token.`);
+      highlightMovableTokens();
+    }
+  }, 600);
+}
+
+function getValidTokenIndices(player, roll){
+  const valid = [];
+  tokens[player].forEach((t, idx)=>{
+    if(t.stepCount === -1 && roll === 6) valid.push(idx);
+    else if(t.stepCount >= 0 && (t.stepCount + roll) <= 56) valid.push(idx);
+  });
+  return valid;
+}
+
+function updateDiceUI(){
+  const redBox = document.getElementById('dice-red');
+  const greenBox = document.getElementById('dice-green');
+  
+  redBox.className = `dice-box ${currentPlayer==='red' ? 'active' : 'inactive'}`;
+  greenBox.className = `dice-box ${currentPlayer==='green' ? 'active' : 'inactive'}`;
+  
+  if(!hasRolled){
+    redBox.querySelectorAll('.dice-dot').forEach(d=>d.style.display='none');
+    greenBox.querySelectorAll('.dice-dot').forEach(d=>d.style.display='none');
+  }
+}
+
+function highlightMovableTokens(){
+  if(myPlayerColor && currentPlayer !== myPlayerColor) return;
+  const validIndices = getValidTokenIndices(currentPlayer, diceValue);
+  validIndices.forEach(idx => {
+    document.getElementById(`token-${currentPlayer}-${idx}`).classList.add('movable');
+  });
+}
+
+function clearHighlights(){
+  document.querySelectorAll('.token').forEach(el=>el.classList.remove('movable'));
+}
+
+function handleTokenClick(player, tokenIdx){
+  if(myPlayerColor && player !== myPlayerColor) return;
+  if(!hasRolled || player !== currentPlayer || isMoving) return;
+  const token = tokens[player][tokenIdx];
+  
+  if(token.stepCount === -1 && diceValue !== 6) return;
+  if(token.stepCount >= 0 && (token.stepCount + diceValue) > 56) return;
+  
+  socket.emit("moveToken", { player: player, tokenIdx: tokenIdx, roll: diceValue });
+  executeMove(player, tokenIdx);
+}
+
+function executeMove(player, tokenIdx){
+  clearInterval(turnTimer);
+  clearHighlights(); 
+  isMoving = true;
+  bonusTurnGranted = false;
+  const token = tokens[player][tokenIdx];
+
+  if(token.stepCount === -1 && diceValue === 6){
+    token.stepCount = 0; 
+    token.position = START_INDEX[player];
+    updateScore(player, 1);
+    renderTokens(); 
+    checkKill(player, token.position); 
+    afterMove(); 
+    return;
+  }
+
+  const targetStep = token.stepCount + diceValue;
+  const el = document.getElementById(`token-${player}-${tokenIdx}`);
+  el.classList.add('walking'); 
+  let currentStep = token.stepCount;
+
+  const walkInterval = setInterval(()=>{
+    currentStep++; 
+    token.stepCount = currentStep;
+    updateScore(player, 1);
+    
+    if(currentStep < 51){ 
+      token.position = (START_INDEX[player] + currentStep) % 52; 
+    } else { 
+      token.position = 100 + (currentStep - 51); 
+    }
+    
+    document.getElementById('moveSound').play().catch(()=>{});
+    renderTokens();
+
+    if(currentStep >= targetStep){
+      clearInterval(walkInterval); 
+      el.classList.remove('walking');
+      
+      if(currentStep === 56){
+        bonusTurnGranted = true;
+        updateScore(player, 56);
+        setMessage(`${capitalize(player)} reached home! +56 Bonus Points!`);
+      }
+      
+      checkKill(player, token.position); 
+      afterMove();
+    }
+  }, 180);
+}
+
+function updateScore(player, points){
+  scores[player] += points;
+  document.getElementById(`score-${player}`).innerText = scores[player];
+}
+
+/* REACTION & SOUND FUNCTION FOR CAPTURING/KILLING A TOKEN */
+function triggerKillReaction(){
+  const killSound = document.getElementById('killSound');
+  killSound.currentTime = 0;
+  killSound.play().catch(()=>{});
+
+  // Screen shake reaction
+  const container = document.getElementById('gameContainer');
+  container.classList.add('shake');
+  setTimeout(() => container.classList.remove('shake'), 400);
+
+  // Pop-up visual reaction
+  const popup = document.getElementById('capturePopup');
+  popup.classList.add('show');
+  setTimeout(() => popup.classList.remove('show'), 900);
+}
+
+function checkKill(player, pos){
+  if(pos >= 100 || SAFE_INDICES.includes(pos)) return;
+  const opponent = player==='red'?'green':'red'; 
+  let killed = false;
+
+  tokens[opponent].forEach(oppToken => {
+    if(oppToken.stepCount >= 0 && oppToken.stepCount < 51 && oppToken.position === pos){
+      // Opponent loses points equivalent to their progress
+      scores[opponent] = Math.max(0, scores[opponent] - oppToken.stepCount);
+      document.getElementById(`score-${opponent}`).innerText = scores[opponent];
+      
+      oppToken.stepCount = -1; 
+      oppToken.position = -1; 
+      killed = true;
+    }
+  });
+
+  if(killed){
+    triggerKillReaction();
+    bonusTurnGranted = true;
+    updateScore(player, 20); // +20 Capture Bonus
+    setMessage(`💥 ${capitalize(player)} captured ${capitalize(opponent)}! +20 Bonus! 💥`);
+    renderTokens();
+  }
+}
+
+function afterMove(){
+  isMoving = false; 
+  if(checkWinCondition()) return;
+
+  if(diceValue === 6 || bonusTurnGranted){ 
+    hasRolled = false; 
+    diceValue = null; 
+    if(!bonusTurnGranted) setMessage(`${capitalize(currentPlayer)} rolled 6! Roll again.`);
+    updateDiceUI(); 
+    startTurnTimer();
+  } else { 
+    switchTurn(); 
+  }
+}
+
+function renderTokens(){
+  ['red','green'].forEach(player=>{
+    tokens[player].forEach((t,idx)=>{
+      const el=document.getElementById(`token-${player}-${idx}`);
+      if(t.stepCount === -1){
+        const spots = document.querySelectorAll(`.${player}-base .base-spot`);
+        if(spots[idx]) spots[idx].appendChild(el);
+      } else if(t.stepCount < 51){
+        const pathEl = document.getElementById(`path-${t.position}`);
+        if(pathEl) pathEl.appendChild(el);
+      } else {
+        const homeIdx = t.stepCount - 51;
+        const homeEl = document.getElementById(`home-${player}-${homeIdx}`);
+        if(homeEl) homeEl.appendChild(el);
+      }
+    });
+  });
+}
+
+function switchTurn(){
+  hasRolled = false; 
+  diceValue = null;
+  consecutiveSixes = 0;
+  currentPlayer = (currentPlayer==='red') ? 'green' : 'red';
+  
+  const pd = document.getElementById('current-player');
+  pd.innerText = currentPlayer.toUpperCase();
+  pd.style.color = currentPlayer === 'red' ? '#ff4d4d' : '#2ecc71';
+  
+  setMessage(`${capitalize(currentPlayer)}'s Turn - Tap Dice`);
+  updateDiceUI();
+  startTurnTimer();
+}
+
+function checkWinCondition(){
+  const isWin = tokens[currentPlayer].every(t => t.stepCount === 56);
+  if(isWin){
+    clearInterval(turnTimer);
+    const winner = scores.red > scores.green ? 'RED' : 'GREEN';
+    setMessage(`🎉 ${winner} Wins 500 SSP! 🎉`); 
+    document.querySelectorAll('.dice-box').forEach(b=>b.classList.add('inactive')); 
+    hasRolled = true; 
+    return true;
+  } 
+  return false;
+}
+
+function setMessage(m){ document.getElementById('message').innerText = m; }
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+window.onload = initBoard;
+
+/* SOCKET.IO REAL-TIME ONLINE LOGIC */
+socket.on("connect", () => { 
+  setMessage("Connected to Juba Ludo online!"); 
+});
+
+socket.on("assignRole", (role) => {
+  myPlayerColor = role;
+  document.getElementById("player-role").innerText = "You: " + role.toUpperCase();
+});
+
+socket.on("diceRolled", (data) => {
+  if(data.player !== myPlayerColor){
+    diceValue = data.value;
+    executeRoll(data.player);
+  }
+});
+
+socket.on("tokenMoved", (data) => {
+  if(data.player !== myPlayerColor){
+    diceValue = data.roll;
+    executeMove(data.player, data.tokenIdx);
+  }
+});
 </script>
 </body>
 </html>
