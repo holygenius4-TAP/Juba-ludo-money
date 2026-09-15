@@ -245,6 +245,51 @@ html, body {
 @media (max-height: 800px) { .game-container { transform: scale(0.9); transform-origin: center center; } }
 @media (max-height: 700px) { .game-container { transform: scale(0.8); } }
 @media (max-height: 600px) { .game-container { transform: scale(0.7); } }
+
+/* --- NEW FEATURE STYLES (MONEY & WALLET) --- */
+.wallet-bar {
+  background: #111219; border: 2px solid #ffd700; border-radius: 12px;
+  padding: 10px 16px; width: 100%; max-width: 320px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6); margin-top: 15px;
+}
+.balance-display { color: #2ecc71; font-weight: 900; font-size: 1.1rem; }
+.wallet-actions { display: flex; gap: 8px; width: 100%; max-width: 320px; margin-top: 5px; }
+.btn-wallet {
+  flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold;
+  font-size: 0.9rem; cursor: pointer; transition: 0.2s; color: #fff;
+}
+.btn-dep { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+.btn-wtd { background: linear-gradient(135deg, #e67e22, #d35400); }
+.btn-wallet:active { transform: scale(0.95); }
+
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); z-index: 3000; justify-content: center; align-items: center; padding: 20px;
+}
+.modal-card {
+  background: #1a1b23; border: 2px solid #ffd700; border-radius: 15px;
+  padding: 20px; width: 100%; max-width: 340px; color: #fff; display: flex; flex-direction: column; gap: 12px;
+}
+.modal-card h3 { color: #ffd700; text-align: center; font-size: 1.3rem; }
+.modal-input {
+  width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444;
+  background: #0f1015; color: #fff; font-size: 1rem; text-align: center;
+}
+.deposit-amounts { display: flex; gap: 6px; justify-content: space-between; }
+.btn-chip {
+  flex: 1; background: #262938; border: 1px solid #ffd700; color: #ffd700;
+  padding: 8px 4px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; cursor: pointer;
+}
+.btn-chip.selected { background: #ffd700; color: #000; }
+.board-header-btns {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;
+}
+.btn-nav {
+  background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px;
+  border-radius: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer;
+}
+.btn-nav-quit { background: #c0392b; border-color: #e74c3c; }
 </style>
 </head>
 <body>
@@ -252,6 +297,17 @@ html, body {
 <div id="lobby">
   <div id="ticker">🏆 James from Juba just won 3,400 SSP • 🏆 Akol won 8,500 SSP • 🏆 John won 1,700 SSP</div>
   <h1>EAST AFRICA LUDO</h1>
+
+  <!-- FEATURE 1 & 2: BALANCE & DEPOSIT/WITHDRAW BUTTONS -->
+  <div class="wallet-bar">
+    <span>💳 Account:</span>
+    <span id="userBalanceDisplay" class="balance-display">Balance: 0 SSP</span>
+  </div>
+  <div class="wallet-actions">
+    <button class="btn-wallet btn-dep" onclick="openDepositModal()">💰 Deposit</button>
+    <button class="btn-wallet btn-wtd" onclick="openWithdrawModal()">🏦 Withdraw</button>
+  </div>
+
   <div id="onlineCountRow" style="display:none; margin-bottom:5px;">
       <p id="onlineCount" class="online-count">🔴 12 Players Online</p>
   </div>
@@ -280,6 +336,33 @@ html, body {
   <a href="https://chat.whatsapp.com/FogbAbk3424EwyXa6KBgMJ?s=cl&p=a&mlu=4&ilr=4" target="_blank" style="display:block; width:100%; max-width:320px; background:#25D366; color:white; padding:12px; text-align:center; border-radius:10px; text-decoration:none; font-weight:bold; margin-top:5px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); position:relative; z-index:999; cursor:pointer;">💬 Join WhatsApp Group - Find Players Fast</a>
 </div>
 
+<!-- FEATURE 1 MODAL: DEPOSIT -->
+<div id="depositModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3>💰 MTN MoMo Deposit</h3>
+    <input type="number" id="depMtnInput" class="modal-input" placeholder="MTN Number (e.g. 092xxxxxxx)">
+    <div class="deposit-amounts">
+      <button class="btn-chip selected" onclick="selectDepChip(1000, this)">1,000</button>
+      <button class="btn-chip" onclick="selectDepChip(2500, this)">2,500</button>
+      <button class="btn-chip" onclick="selectDepChip(5000, this)">5,000</button>
+    </div>
+    <input type="number" id="depAmountInput" class="modal-input" value="1000" readonly>
+    <button class="btn-wallet btn-dep" onclick="confirmDeposit()">Confirm Deposit</button>
+    <button class="btn-nav" onclick="closeDepositModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- FEATURE 2 MODAL: WITHDRAW -->
+<div id="withdrawModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3>🏦 MTN MoMo Withdraw</h3>
+    <input type="number" id="wtdMtnInput" class="modal-input" placeholder="MTN Number (e.g. 092xxxxxxx)">
+    <input type="number" id="wtdAmountInput" class="modal-input" placeholder="Amount (SSP)">
+    <button class="btn-wallet btn-wtd" onclick="confirmWithdraw()">Confirm Withdraw</button>
+    <button class="btn-nav" onclick="closeWithdrawModal()">Cancel</button>
+  </div>
+</div>
+
 <div id="endGameModal">
   <h2 id="endModalTitle">GAME OVER</h2>
   <p id="endModalText">😭 So close! You almost won 1,700 SSP! Play again?</p>
@@ -288,6 +371,12 @@ html, body {
 
 <div id="gameBoard" style="display:none">
   <div class="game-container" id="gameContainer">
+    <!-- FEATURE 3 & 4: BOARD BACK & QUIT BUTTONS -->
+    <div class="board-header-btns">
+      <button class="btn-nav" onclick="backToHome()">⬅️ Back</button>
+      <button class="btn-nav btn-nav-quit" onclick="handleQuitMatch()">❌ Quit</button>
+    </div>
+
     <div id="capturePopup" class="capture-popup">💥 KILL! 💥</div>
     <div class="top-bar">
       <div class="status-text">Turn: <span id="current-player" style="color:#ff3333;">RED</span></div>
@@ -485,6 +574,7 @@ let consecutiveSixes = 0;
 let bonusTurnGranted = false;
 let currentFee = 1000;
 let isPracticeMode = false;
+let moneyMode = false;
 
 let scores = { red: 0, green: 0 };
 let multipliers = { red: 1, green: 1 };
@@ -498,6 +588,120 @@ let tokens={
 
 let currentRoomCode = "JUBA123";
 let roomRef = null;
+
+// --- WALLET & MONEY STATE MANAGEMENT ---
+let userBalance = parseFloat(localStorage.getItem('juba_ludo_balance')) || 0;
+let userMtnNumber = localStorage.getItem('juba_ludo_mtn') || '';
+let depositHistory = JSON.parse(localStorage.getItem('juba_ludo_dep_history')) || [];
+
+function updateBalanceUI() {
+  localStorage.setItem('juba_ludo_balance', userBalance);
+  const el = document.getElementById('userBalanceDisplay');
+  if(el) el.innerText = `Balance: ${userBalance.toLocaleString()} SSP`;
+}
+
+function openDepositModal() {
+  if(userMtnNumber) document.getElementById('depMtnInput').value = userMtnNumber;
+  document.getElementById('depositModal').style.display = 'flex';
+}
+function closeDepositModal() { document.getElementById('depositModal').style.display = 'none'; }
+
+function selectDepChip(amt, el) {
+  document.querySelectorAll('.deposit-amounts .btn-chip').forEach(b => b.classList.remove('selected'));
+  if(el) el.classList.add('selected');
+  document.getElementById('depAmountInput').value = amt;
+}
+
+function confirmDeposit() {
+  const mtn = document.getElementById('depMtnInput').value.trim();
+  const amt = parseFloat(document.getElementById('depAmountInput').value);
+  if (!mtn || mtn.length < 9) { alert('❌ Please enter a valid MTN phone number'); return; }
+  if (!amt || amt <= 0) { alert('❌ Please select a valid amount'); return; }
+
+  userMtnNumber = mtn;
+  localStorage.setItem('juba_ludo_mtn', userMtnNumber);
+  userBalance += amt;
+  
+  const depRecord = { mtn, amount: amt, date: new Date().toISOString() };
+  depositHistory.push(depRecord);
+  localStorage.setItem('juba_ludo_dep_history', JSON.stringify(depositHistory));
+
+  if (db) {
+    db.ref(`users/${userMtnNumber}`).update({
+      balance: userBalance,
+      lastDeposit: depRecord
+    });
+  }
+
+  updateBalanceUI();
+  alert(`✅ Deposit Success!\n${amt.toLocaleString()} SSP added to your balance.`);
+  closeDepositModal();
+}
+
+function openWithdrawModal() {
+  if(userMtnNumber) document.getElementById('wtdMtnInput').value = userMtnNumber;
+  document.getElementById('withdrawModal').style.display = 'flex';
+}
+function closeWithdrawModal() { document.getElementById('withdrawModal').style.display = 'none'; }
+
+function confirmWithdraw() {
+  const mtn = document.getElementById('wtdMtnInput').value.trim();
+  const amt = parseFloat(document.getElementById('wtdAmountInput').value);
+  if (!mtn || mtn.length < 9) { alert('❌ Please enter a valid MTN phone number'); return; }
+  if (isNaN(amt) || amt <= 0) { alert('❌ Enter a valid withdrawal amount'); return; }
+
+  if (userBalance < amt) {
+    alert('❌ Low balance! You do not have enough SSP.');
+    return;
+  }
+
+  userBalance -= amt;
+  updateBalanceUI();
+
+  if (db) {
+    db.ref(`withdraws/${mtn}_${Date.now()}`).set({
+      mtn: mtn, amount: amt, netAmount: amt * 0.9, timestamp: Date.now()
+    });
+    db.ref(`users/${mtn}`).update({ balance: userBalance });
+  }
+
+  alert(`Withdraw request sent to ${mtn} - 90% after 10% fee`);
+  closeWithdrawModal();
+}
+
+// FEATURE 3: BOARD BACK BUTTON
+function backToHome() {
+  document.getElementById('gameBoard').style.display = 'none';
+  document.getElementById('lobby').style.display = 'flex';
+}
+
+// FEATURE 4: QUIT BUTTON LOGIC
+function handleQuitMatch() {
+  if (!moneyMode) {
+    if (confirm("Are you sure you want to quit this practice match?")) backToHome();
+    return;
+  }
+
+  if (confirm("⚠️ Quitting a money match will result in forfeiture! Are you sure?")) {
+    const opponentColor = myPlayerColor === 'red' ? 'green' : 'red';
+    const totalPot = currentFee * 2;
+    const winnerPrize = totalPot * 0.9;
+    const appCommission = totalPot * 0.1;
+
+    if (roomRef) {
+      roomRef.update({
+        winner: opponentColor,
+        quitPlayer: myPlayerColor,
+        commission: appCommission,
+        timestamp: Date.now()
+      });
+    }
+
+    alert("You quit! No refund. Opponent wins!");
+    moneyMode = false;
+    backToHome();
+  }
+}
 
 const fakeWinNames = ["James", "Akol", "John", "Deng", "Emmanuel", "Grace", "Peter", "Kuel", "Daniel", "Bol"];
 const fakeWinCities = ["Juba", "Aweil", "Wau", "Bor", "Yei", "Nimule", "Torit"];
@@ -529,20 +733,20 @@ function selectFee(amount, el){
   currentFee = amount;
   document.querySelectorAll('.btn-fee').forEach(b=>b.classList.remove('selected'));
   if(el) el.classList.add('selected');
-  const winnings = Math.floor(amount * 1.7);
+  const winnings = Math.floor(amount * 1.8);
   const prizeDisplay = document.getElementById('prizePoolDisplay');
   if(prizeDisplay) prizeDisplay.innerText = `${winnings.toLocaleString()} SSP`;
 }
 
-// MTN MoMo Payment & Stake Prompt
+// FEATURE 6: ROOM BALANCE VALIDATION BEFORE MONEY PLAY
 function startPlayForMoney() {
-  const phone = prompt(`📱 MTN MoMo South Sudan Payment\nEnter your MTN number (e.g. 0921234567) to stake ${currentFee.toLocaleString()} SSP:`);
-  if (!phone || phone.trim().length < 9) {
-    alert("❌ Valid MTN MoMo phone number required to join money mode!");
+  if (userBalance < currentFee) {
+    alert(`❌ Low balance! You need at least ${currentFee.toLocaleString()} SSP to play this fee tier. Please deposit first.`);
+    openDepositModal();
     return;
   }
   
-  alert(`✅ Stake of ${currentFee.toLocaleString()} SSP confirmed on ${phone}!\nJoining Money Room code JUBA123...`);
+  alert(`✅ Fee of ${currentFee.toLocaleString()} SSP dedicated from balance.\nJoining Money Room code JUBA123...`);
   const roomInput = document.getElementById('roomCodeInput');
   roomInput.value = "JUBA123";
   handleJoinRoom();
@@ -550,6 +754,7 @@ function startPlayForMoney() {
 
 function startPracticeMode() {
   isPracticeMode = true;
+  moneyMode = false;
   myPlayerColor = 'red';
   document.getElementById('prizePoolDisplay').innerText = "0 SSP (Practice)";
   document.getElementById('player-role').innerText = "Practice vs AI";
@@ -639,11 +844,28 @@ function initFirebaseRoom(code, role) {
     } else if (data.action === 'move' && data.sender !== myPlayerColor) {
       diceValue = data.diceValue;
       executeMove(data.currentPlayer, data.tokenIdx);
+    } else if (data.quitPlayer && data.quitPlayer !== myPlayerColor) {
+      alert("Opponent left the match! You win by forfeit!");
+      const totalWin = currentFee * 2 * 0.9;
+      userBalance += totalWin;
+      updateBalanceUI();
+      moneyMode = false;
+      backToHome();
     }
   });
 }
 
 function handleCreateRoom() {
+  if (userBalance < currentFee) {
+    alert(`❌ Low balance! You need at least ${currentFee.toLocaleString()} SSP to stake.`);
+    openDepositModal();
+    return;
+  }
+
+  userBalance -= currentFee;
+  updateBalanceUI();
+  moneyMode = true;
+
   isPracticeMode = false;
   const code = document.getElementById('roomCodeInput').value.trim().toUpperCase() || generateRandomRoomCode();
   currentRoomCode = code;
@@ -661,6 +883,16 @@ function handleCreateRoom() {
 }
 
 function handleJoinRoom() {
+  if (userBalance < currentFee) {
+    alert(`❌ Low balance! You need at least ${currentFee.toLocaleString()} SSP to stake.`);
+    openDepositModal();
+    return;
+  }
+
+  userBalance -= currentFee;
+  updateBalanceUI();
+  moneyMode = true;
+
   isPracticeMode = false;
   const input = document.getElementById('roomCodeInput');
   const code = input.value.trim().toUpperCase() || "JUBA123";
@@ -681,6 +913,7 @@ function handleJoinRoom() {
 function initBoard(){
   updateRandomOnlineCount();
   updateUrgencyBanner();
+  updateBalanceUI();
   const b=document.getElementById('board');
   const existingCells = b.querySelectorAll('.cell');
   existingCells.forEach(cell => cell.remove());
@@ -1063,6 +1296,7 @@ function switchTurn(){
   }
 }
 
+// FEATURE 5: WINNER SCREEN + COMMISSION (10%) LOGIC
 function checkWinCondition(){
   const allHome = tokens[currentPlayer].every(t => t.stepCount === 56);
   if(allHome){
@@ -1086,19 +1320,30 @@ function checkWinCondition(){
       return true;
     }
 
-    const winAmount = Math.floor(currentFee * 1.7).toLocaleString();
+    const totalPot = currentFee * 2;
+    const winnerReward = totalPot * 0.9;
+    const appCommission = totalPot * 0.1;
     const userIsWinner = myPlayerColor ? (currentPlayer === myPlayerColor) : (currentPlayer === 'red');
 
+    if (roomRef) {
+      roomRef.update({
+        winner: currentPlayer,
+        winnerPrize: winnerReward,
+        commission: appCommission,
+        timestamp: Date.now()
+      });
+    }
+
     if (userIsWinner) {
-      setMessage(`YOU WON ${winAmount} SSP! 🎉`);
+      userBalance += winnerReward;
+      updateBalanceUI();
+
+      setMessage(`🎉 You Won! +${winnerReward.toLocaleString()} SSP`);
       if (navigator.vibrate) navigator.vibrate(500);
-      
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-      }
+      if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
 
       setTimeout(() => {
-        alert(`🏆 CONGRATULATIONS!\nYOU WON ${winAmount} SSP!`);
+        alert(`🎉 You Won! +${winnerReward.toLocaleString()} SSP\n(Commission 10% kept for app: ${appCommission.toLocaleString()} SSP)`);
         returnToLobby(false);
       }, 1000);
 
@@ -1107,11 +1352,12 @@ function checkWinCondition(){
       
       setTimeout(() => {
         const endModal = document.getElementById('endGameModal');
-        document.getElementById('endModalText').innerText = `😭 So close! You almost won ${winAmount} SSP! Play again?`;
+        document.getElementById('endModalText').innerText = `😭 So close! You almost won ${winnerReward.toLocaleString()} SSP! Play again?`;
         endModal.style.display = 'flex';
       }, 800);
     }
 
+    moneyMode = false;
     return true;
   } 
   return false;
