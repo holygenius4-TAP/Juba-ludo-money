@@ -304,6 +304,13 @@ html, body {
 </head>
 <body>
 
+<!-- BEAUTIFUL POPUP - No more "This page says" -->
+<div id="toastBox" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e293b;border:2px solid #f59e0b;padding:20px;border-radius:15px;z-index:9999;width:80%;max-width:300px;text-align:center">
+  <p id="toastMsg" style="color:white;font-size:16px"></p>
+  <button onclick="closeToast()" style="background:#f59e0b;color:black;width:100%;margin-top:10px;padding:10px;border-radius:8px;border:none;font-weight:bold">OK</button>
+</div>
+<div id="overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9998"></div>
+
 <div id="lobby">
   <div id="ticker">🏆 James from Juba just won 3,400 SSP • 🏆 Akol won 8,500 SSP • 🏆 John won 1,700 SSP</div>
   <h1>EAST AFRICA LUDO</h1>
@@ -451,6 +458,23 @@ html, body {
 </div>
 
 <script>
+// --- OVERRIDE ALERT & CONFIRM DIALOGS ---
+window.alert = function(msg){
+  document.getElementById("toastMsg").innerText = msg;
+  document.getElementById("toastBox").style.display = "block";
+  document.getElementById("overlay").style.display = "block";
+}
+function closeToast(){
+  document.getElementById("toastBox").style.display="none";
+  document.getElementById("overlay").style.display="none";
+}
+
+window.confirm = function(msg){
+  if(window.confirmCallback) window.confirmCallback(true);
+  alert(msg);
+  return true;
+}
+
 // --- FIREBASE SETUP ---
 const firebaseConfig = {
   apiKey: "AIzaSyDemoConfigKeyForLudoMatch",
