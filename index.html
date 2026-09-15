@@ -22,7 +22,7 @@ html, body {
   background: rgba(15, 16, 21, 0.95);
   z-index: 100;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: 10px 20px; gap: 12px; text-align: center;
+  padding: 10px 20px; gap: 10px; text-align: center;
 }
 
 #ticker {
@@ -34,7 +34,7 @@ html, body {
 
 #lobby h1 {
   color: #ffd700; font-size: 2.2rem; font-weight: 900; letter-spacing: 2px;
-  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); margin-top: 25px; margin-bottom: 5px;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); margin-top: 25px; margin-bottom: 2px;
 }
 
 .urgency-banner {
@@ -47,7 +47,7 @@ html, body {
   100% { transform: scale(1.02); opacity: 1; }
 }
 
-.fee-container { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; position: relative; z-index: 200; }
+.fee-container { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 320px; position: relative; z-index: 200; }
 
 .btn-fee {
   background: linear-gradient(135deg, #2ecc71, #27ae60);
@@ -71,12 +71,14 @@ html, body {
 
 .game-container { display: flex; flex-direction: column; align-items: center; width: 98vw; max-width: 600px; max-height: 98vh; justify-content: center; gap: 10px; position: relative; }
 
-.lobby-header { width: 100%; max-width: 320px; background: #1a1b23; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; }
+.lobby-header { width: 100%; max-width: 320px; background: #1a1b23; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; }
 .online-count { font-size: 1rem; font-weight: bold; color: #ff4d4d; }
 
 .room-controls { display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap; }
 .btn-room { background: #2ecc71; color: #111; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
 .btn-room:active { transform: scale(0.95); }
+.btn-practice { background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; width: 100%; padding: 10px; border-radius: 6px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+.btn-practice:active { transform: scale(0.96); }
 .room-input { width: 100px; padding: 7px 8px; border-radius: 6px; border: 1px solid #444; background: #0f1015; color: #fff; font-size: 0.85rem; text-transform: uppercase; text-align: center; }
 .room-info-text { font-size: 0.85rem; color: #2ecc71; font-weight: 600; display: none; }
 
@@ -257,6 +259,7 @@ html, body {
       <input type="text" id="roomCodeInput" class="room-input" placeholder="CODE" maxlength="6">
       <button class="btn-room" style="background:#ffdb4d;" onclick="handleJoinRoom()">Join Room</button>
     </div>
+    <button class="btn-practice" onclick="startPracticeMode()">🎮 Practice Mode (vs AI)</button>
     <div id="roomInfoText" class="room-info-text"></div>
   </div>
 
@@ -447,6 +450,7 @@ let isMoving = false;
 let consecutiveSixes = 0;
 let bonusTurnGranted = false;
 let currentFee = 1000;
+let isPracticeMode = false;
 
 let scores = { red: 0, green: 0 };
 let multipliers = { red: 1, green: 1 };
@@ -493,7 +497,27 @@ function updateUrgencyBanner() {
 }
 setInterval(updateUrgencyBanner, 4000);
 
+function startPracticeMode() {
+  isPracticeMode = true;
+  myPlayerColor = 'red';
+  document.getElementById('prizePoolDisplay').innerText = "0 SSP (Practice)";
+  document.getElementById('player-role').innerText = "Practice vs AI";
+  
+  document.getElementById('endGameModal').style.display = 'none';
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('gameBoard').style.display = 'block';
+
+  if (BOARD_PATH.length > 0 && !document.getElementById('path-0')) {
+    initBoard();
+  } else {
+    resetGameState();
+    startTurnTimer();
+  }
+  setMessage("Practice Mode! You are RED.");
+}
+
 function selectFee(amount){
+  isPracticeMode = false;
   currentFee = amount;
   const winnings = Math.floor(amount * 1.7);
   const prizeDisplay = document.getElementById('prizePoolDisplay');
@@ -550,6 +574,7 @@ function generateRandomRoomCode() {
 }
 
 function handleCreateRoom() {
+  isPracticeMode = false;
   const code = generateRandomRoomCode();
   currentRoomCode = code;
   const roomInfo = document.getElementById('roomInfoText');
@@ -570,6 +595,7 @@ function handleCreateRoom() {
 }
 
 function handleJoinRoom() {
+  isPracticeMode = false;
   const input = document.getElementById('roomCodeInput');
   const code = input.value.trim().toUpperCase();
   if(!code) {
@@ -647,10 +673,11 @@ function showDiceFace(player, n){
 }
 
 function handleDiceClick(player){
-  if (socket && socket.connected && myPlayerColor && player !== myPlayerColor) return;
+  if (!isPracticeMode && socket && socket.connected && myPlayerColor && player !== myPlayerColor) return;
+  if (isPracticeMode && player !== 'red') return;
   if(player !== currentPlayer || hasRolled || isMoving) return;
   
-  if (socket && socket.connected) {
+  if (!isPracticeMode && socket && socket.connected) {
     socket.emit("rollDice", { player: player, room: currentRoomCode });
   }
   executeRoll(player);
@@ -689,16 +716,59 @@ function executeRoll(player){
     if(validMoveIndices.length === 0){
       setMessage(`No valid moves! Turn passes.`);
       setTimeout(switchTurn, 1200);
-    } else if(validMoveIndices.length === 1 && (!socket || !socket.connected || !myPlayerColor || currentPlayer === myPlayerColor)){
+    } else if(validMoveIndices.length === 1 && (!isPracticeMode && (!socket || !socket.connected || !myPlayerColor || currentPlayer === myPlayerColor))){
       setMessage(`Auto-moving token...`);
       setTimeout(()=>{
         handleTokenClick(currentPlayer, validMoveIndices[0]);
       }, 400);
+    } else if (isPracticeMode && currentPlayer === 'green') {
+      setTimeout(() => {
+        handleAITokenSelection(validMoveIndices);
+      }, 500);
     } else {
       setMessage(`${capitalize(currentPlayer)} rolled ${diceValue}! Select token.`);
       highlightMovableTokens();
     }
   }, 600);
+}
+
+function triggerAITurn() {
+  if (!isPracticeMode || currentPlayer !== 'green') return;
+  setMessage("AI is thinking...");
+  setTimeout(() => {
+    executeRoll('green');
+  }, 800);
+}
+
+function handleAITokenSelection(validIndices) {
+  if (!validIndices || validIndices.length === 0) return;
+
+  let bestIndex = validIndices[0];
+  let highestScore = -999;
+
+  validIndices.forEach(idx => {
+    const token = tokens.green[idx];
+    let score = 0;
+    let targetPos = (token.stepCount === -1) ? START_INDEX.green : (START_INDEX.green + token.stepCount + diceValue) % 52;
+
+    if (token.stepCount === -1) score += 30;
+
+    tokens.red.forEach(redTok => {
+      if (redTok.stepCount >= 0 && redTok.stepCount < 51 && redTok.position === targetPos && !SAFE_CELLS.includes(targetPos)) {
+        score += 100;
+      }
+    });
+
+    if (SAFE_CELLS.includes(targetPos)) score += 15;
+    score += (token.stepCount + diceValue);
+
+    if (score > highestScore) {
+      highestScore = score;
+      bestIndex = idx;
+    }
+  });
+
+  handleTokenClick('green', bestIndex);
 }
 
 function getValidTokenIndices(player, roll){
@@ -724,7 +794,7 @@ function updateDiceUI(){
 }
 
 function highlightMovableTokens(){
-  if(socket && socket.connected && myPlayerColor && currentPlayer !== myPlayerColor) return;
+  if(!isPracticeMode && socket && socket.connected && myPlayerColor && currentPlayer !== myPlayerColor) return;
   
   const validIndices = getValidTokenIndices(currentPlayer, diceValue);
   validIndices.forEach(idx => {
@@ -737,14 +807,14 @@ function clearHighlights(){
 }
 
 function handleTokenClick(player, tokenIdx){
-  if (socket && socket.connected && myPlayerColor && player !== myPlayerColor) return;
+  if (!isPracticeMode && socket && socket.connected && myPlayerColor && player !== myPlayerColor) return;
   if(!hasRolled || player !== currentPlayer || isMoving) return;
   
   const token = tokens[player][tokenIdx];
   if(token.stepCount === -1 && diceValue !== 6) return;
   if(token.stepCount >= 0 && (token.stepCount + diceValue) > 56) return;
   
-  if (socket && socket.connected) {
+  if (!isPracticeMode && socket && socket.connected) {
     socket.emit("moveToken", { player: player, tokenIdx: tokenIdx, roll: diceValue, room: currentRoomCode });
   }
   executeMove(player, tokenIdx);
@@ -868,6 +938,9 @@ function afterMove(){
     if(!bonusTurnGranted) setMessage(`${capitalize(currentPlayer)} rolled 6! Roll again.`);
     updateDiceUI(); 
     startTurnTimer();
+    if (isPracticeMode && currentPlayer === 'green') {
+      triggerAITurn();
+    }
   } else { 
     switchTurn(); 
   }
@@ -906,6 +979,10 @@ function switchTurn(){
   setMessage(`${capitalize(currentPlayer)}'s Turn`);
   updateDiceUI();
   startTurnTimer();
+
+  if (isPracticeMode && currentPlayer === 'green') {
+    triggerAITurn();
+  }
 }
 
 function checkWinCondition(){
@@ -917,6 +994,19 @@ function checkWinCondition(){
     document.getElementById('dice-red').classList.add('inactive');
     document.getElementById('dice-green').classList.add('inactive');
     hasRolled = true;
+
+    if (isPracticeMode) {
+      if (currentPlayer === 'red') {
+        setMessage("PRACTICE WON! Great Job! 🎉");
+        if (navigator.vibrate) navigator.vibrate(500);
+        if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        setTimeout(() => { alert("🏆 Practice Game Complete! You won!"); returnToLobby(false); }, 1000);
+      } else {
+        setMessage("AI Won Practice Match!");
+        setTimeout(() => { alert("Game Over! AI won."); returnToLobby(false); }, 1000);
+      }
+      return true;
+    }
 
     const winAmount = Math.floor(currentFee * 1.7).toLocaleString();
     const userIsWinner = myPlayerColor ? (currentPlayer === myPlayerColor) : (currentPlayer === 'red');
@@ -989,6 +1079,7 @@ if (socket) {
   });
 
   socket.on("assignRole", (role) => {
+    if (isPracticeMode) return;
     myPlayerColor = role;
     const roleColors = {red: '#ff3333', green: '#00cc66'};
     document.getElementById("player-role").innerText = "You are: " + role.toUpperCase();
@@ -996,6 +1087,7 @@ if (socket) {
   });
 
   socket.on("gameStarted", (data) => {
+      if (isPracticeMode) return;
       currentFee = data.fee;
       const winnings = Math.floor(currentFee * 1.7);
       document.getElementById('prizePoolDisplay').innerText = `${winnings.toLocaleString()} SSP`;
@@ -1007,6 +1099,7 @@ if (socket) {
   });
 
   socket.on("diceRolled", (data) => {
+    if (isPracticeMode) return;
     diceValue = data.value;
     if(data.player !== myPlayerColor || !myPlayerColor){
         executeRoll(data.player);
@@ -1014,6 +1107,7 @@ if (socket) {
   });
 
   socket.on("tokenMoved", (data) => {
+    if (isPracticeMode) return;
     diceValue = data.roll;
     if(data.player !== myPlayerColor || !myPlayerColor){
         executeMove(data.player, data.tokenIdx);
@@ -1021,6 +1115,7 @@ if (socket) {
   });
   
   socket.on("playerDisconnected", () => {
+      if (isPracticeMode) return;
       clearInterval(turnTimer);
       setMessage("Opponent disconnected. You win!");
       document.getElementById('dice-red').classList.add('inactive');
