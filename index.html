@@ -372,7 +372,7 @@ html, body {
     <!-- RULE 4: BACK & QUIT BUTTONS ON BOARD HEADER -->
     <div class="board-header-btns">
       <button class="btn-nav" onclick="backToHome()">⬅️ Back</button>
-      <button class="btn-nav btn-nav-quit" onclick="handleQuitMatch()">❌ Quit</button>
+      <button class="btn-nav btn-nav-quit" onclick="quitGame()">❌ Quit</button>
     </div>
 
     <div id="capturePopup" class="capture-popup">💥 KILL! 💥</div>
@@ -709,30 +709,66 @@ function backToHome() {
   document.getElementById('lobby').style.display = 'flex';
 }
 
-function handleQuitMatch() {
-  if (!moneyMode) {
-    if (confirm("Are you sure you want to quit this practice match?")) backToHome();
-    return;
-  }
+function quitGame(){
+  // Ask once with our beautiful popup
+  document.getElementById("toastMsg").innerText = "Quit match? No refund! Opponent wins all!";
+  document.getElementById("toastBox").style.display="block";
+  document.getElementById("overlay").style.display="block";
+  
+  // Add Yes/No buttons for quit
+  document.getElementById("toastBox").innerHTML = `
+    <p style="color:white">Quit match? No refund! Opponent wins all!</p>
+    <button onclick="confirmQuit()" style="background:#ef4444;color:white;width:48%;padding:10px;border-radius:8px;border:none;margin-right:4%">YES QUIT</button>
+    <button onclick="closeToast()" style="background:#334155;color:white;width:48%;padding:10px;border-radius:8px;border:none">STAY</button>
+  `;
+}
 
-  if (confirm("⚠️ Quitting a money match will result in forfeiture! Are you sure?")) {
-    const opponentColor = myPlayerColor === 'red' ? 'green' : 'red';
-    const totalPot = currentFee * 2;
-    const appCommission = totalPot * 0.1;
-
-    if (roomRef) {
+function confirmQuit(){
+  closeToast();
+  
+  // 1. Stop game completely - no background
+  window.gameActive = false;
+  clearInterval(turnTimer);
+  if (window.gameTimer) clearInterval(window.gameTimer);
+  
+  // 2. Firebase - winner is opponent
+  const roomKey = window.currentRoom || currentRoomCode;
+  const currentStake = window.stake || currentFee;
+  if(roomKey && currentStake){
+    let pot = currentStake * 2;
+    let winnerShare = pot * 0.9; // 90% to winner
+    let commission = pot * 0.1; // 10% to you
+    
+    if (db && roomRef) {
+      const opponentColor = myPlayerColor === 'red' ? 'green' : 'red';
       roomRef.update({
         winner: opponentColor,
+        status: 'quit',
         quitPlayer: myPlayerColor,
-        commission: appCommission,
+        commission: commission,
         timestamp: Date.now()
       });
     }
-
-    alert("You quit! No refund. Opponent wins!");
-    moneyMode = false;
-    backToHome();
+    
+    alert("You quit! Opponent wins "+winnerShare+" SSP. Commission "+commission+" SSP kept!");
   }
+  
+  moneyMode = false;
+
+  // 3. Reset board and go home - FULL QUIT
+  const boardElem = document.getElementById("boardScreen") || document.getElementById("gameBoard");
+  if(boardElem) boardElem.style.display="none";
+  
+  const homeElem = document.getElementById("home") || document.getElementById("lobby");
+  if(homeElem) homeElem.style.display="flex";
+  
+  // 4. Clear room code - no background play
+  window.currentRoom = null;
+  window.stake = 0;
+  localStorage.removeItem("currentGame");
+  
+  // 5. Reset tokens to start
+  resetGameState();
 }
 
 const fakeWinNames = ["James", "Akol", "John", "Deng", "Emmanuel", "Grace", "Peter", "Kuel", "Daniel", "Bol"];
@@ -824,6 +860,8 @@ function generateRandomRoomCode() {
 function initFirebaseRoom(code, role) {
   if (!db) return;
   currentRoomCode = code;
+  window.currentRoom = code;
+  window.stake = currentFee;
   myPlayerColor = role;
   isPracticeMode = false;
   
@@ -878,6 +916,8 @@ function handleCreateRoom() {
   isPracticeMode = false;
   const code = document.getElementById('roomCodeInput').value.trim().toUpperCase() || generateRandomRoomCode();
   currentRoomCode = code;
+  window.currentRoom = code;
+  window.stake = currentFee;
   const roomInfo = document.getElementById('roomInfoText');
   roomInfo.style.display = 'block';
   roomInfo.innerText = `Room Code: ${code} - Phone 1 (RED)`;
@@ -906,6 +946,8 @@ function handleJoinRoom() {
   const input = document.getElementById('roomCodeInput');
   const code = input.value.trim().toUpperCase() || "JUBA123";
   currentRoomCode = code;
+  window.currentRoom = code;
+  window.stake = currentFee;
   const roomInfo = document.getElementById('roomInfoText');
   roomInfo.style.display = 'block';
   roomInfo.innerText = `Joined Room: ${code} - Phone 2 (GREEN)`;
